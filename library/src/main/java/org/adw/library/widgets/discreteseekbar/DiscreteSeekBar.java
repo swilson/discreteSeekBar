@@ -165,6 +165,8 @@ public class DiscreteSeekBar extends View {
     private float mDownX;
     private float mTouchSlop;
 
+    private boolean mForceBubble;
+
     public DiscreteSeekBar(Context context) {
         this(context, null);
     }
@@ -535,6 +537,11 @@ public class DiscreteSeekBar extends View {
         }
     }
 
+    public void forceBubble(boolean force) {
+        mForceBubble = force;
+        setPressed(force);
+    }
+
     /**
      * When the {@link DiscreteSeekBar} enters pressed or focused state
      * the bubble with the value will be shown, and this method called
@@ -650,7 +657,7 @@ public class DiscreteSeekBar extends View {
                 pressed = true;
             }
         }
-        if (isEnabled() && (focused || pressed) && mIndicatorPopupEnabled) {
+        if (isEnabled() && (focused || pressed || mForceBubble) && mIndicatorPopupEnabled) {
             //We want to add a small delay here to avoid
             //poping in/out on simple taps
             removeCallbacks(mShowIndicatorRunnable);
@@ -774,7 +781,9 @@ public class DiscreteSeekBar extends View {
             mPublicChangeListener.onStopTrackingTouch(this);
         }
         mIsDragging = false;
-        setPressed(false);
+        if (!mForceBubble) {
+            setPressed(false);
+        }
     }
 
     @Override
