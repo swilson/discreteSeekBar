@@ -387,7 +387,7 @@ public class DiscreteSeekBar extends View {
         setProgress(progress, false);
     }
 
-    private void setProgress(int value, boolean fromUser) {
+    public void setProgress(int value, boolean fromUser) {
         value = Math.max(mMin, Math.min(mMax, value));
         if (isAnimationRunning()) {
             mPositionAnimator.cancel();
