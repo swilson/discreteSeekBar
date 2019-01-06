@@ -673,11 +673,15 @@ public class DiscreteSeekBar extends View {
 
     private void updateProgressMessage(int value) {
         if (!isInEditMode()) {
-            if (mNumericTransformer.useStringTransform()) {
-                mIndicator.setValue(mNumericTransformer.transformToString(value));
-            } else {
-                mIndicator.setValue(convertValueToMessage(mNumericTransformer.transform(value)));
-            }
+            mIndicator.setValue(getValueAsString(value));
+        }
+    }
+
+    public String getValueAsString(int value) {
+        if (mNumericTransformer.useStringTransform()) {
+            return mNumericTransformer.transformToString(mValue);
+        } else {
+            return convertValueToMessage(mNumericTransformer.transform(mValue));
         }
     }
 
