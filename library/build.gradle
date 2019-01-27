@@ -73,5 +73,5 @@ publish {
 }
 
 dependencies {
-    implementation 'com.android.support:support-v4:22.1.1'
+    implementation 'androidx.legacy:legacy-support-v4:1.0.0-beta01'
 }
