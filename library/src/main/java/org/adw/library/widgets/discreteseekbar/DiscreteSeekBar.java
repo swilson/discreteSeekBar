@@ -69,6 +69,21 @@ public class DiscreteSeekBar extends View {
         public void onStopTrackingTouch(DiscreteSeekBar seekBar);
     }
 
+    public interface OnRangeChangeListener {
+        /**
+         * When the {@link DiscreteSeekBar} value changes
+         *
+         * @param seekBar  The DiscreteSeekBar
+         * @param value    the new value
+         * @param fromUser if the change was made from the user or not (i.e. the developer calling {@link #setProgress(int)}
+         */
+        public void onRangeChanged(DiscreteSeekBar seekBar, boolean lower, int value, boolean fromUser);
+
+        public void onStartTrackingTouch(DiscreteSeekBar seekBar);
+
+        public void onStopTrackingTouch(DiscreteSeekBar seekBar);
+    }
+
     /**
      * Interface to transform the current internal value of this DiscreteSeekBar to anther one for the visualization.
      * <p/>
@@ -132,6 +147,7 @@ public class DiscreteSeekBar extends View {
     private static final int DEFAULT_THUMB_COLOR = 0xff009688;
     private static final int SEPARATION_DP = 5;
     private ThumbDrawable mThumb;
+    private ThumbDrawable mLowerThumb;
     private TrackRectDrawable mTrack;
     private TrackRectDrawable mScrubber;
     private Drawable mRipple;
@@ -143,7 +159,9 @@ public class DiscreteSeekBar extends View {
     private int mMax;
     private int mMin;
     private int mValue;
+    private int mLowerValue;
     private int mKeyProgressIncrement = 1;
+    private boolean mRange = false;
     private boolean mMirrorForRtl = false;
     private boolean mAllowTrackClick = true;
     private boolean mIndicatorPopupEnabled = true;
@@ -153,6 +171,7 @@ public class DiscreteSeekBar extends View {
     private NumericTransformer mNumericTransformer;
     private StringBuilder mFormatBuilder;
     private OnProgressChangeListener mPublicChangeListener;
+    private OnRangeChangeListener mRangeChangeListener;
     private boolean mIsDragging;
     private int mDragOffset;
 
@@ -189,7 +208,9 @@ public class DiscreteSeekBar extends View {
         int max = 100;
         int min = 0;
         int value = 0;
+        int rangeLowerValue = 0;
         mMirrorForRtl = a.getBoolean(R.styleable.DiscreteSeekBar_dsb_mirrorForRtl, mMirrorForRtl);
+        mRange = a.getBoolean(R.styleable.DiscreteSeekBar_dsb_range, mRange);
         mAllowTrackClick = a.getBoolean(R.styleable.DiscreteSeekBar_dsb_allowTrackClickToDrag, mAllowTrackClick);
         mIndicatorPopupEnabled = a.getBoolean(R.styleable.DiscreteSeekBar_dsb_indicatorPopupEnabled, mIndicatorPopupEnabled);
         mTrackHeight = a.getDimensionPixelSize(R.styleable.DiscreteSeekBar_dsb_trackHeight, (int) (1 * density));
@@ -205,6 +226,7 @@ public class DiscreteSeekBar extends View {
         int indexMax = R.styleable.DiscreteSeekBar_dsb_max;
         int indexMin = R.styleable.DiscreteSeekBar_dsb_min;
         int indexValue = R.styleable.DiscreteSeekBar_dsb_value;
+        int indexLowerValue = R.styleable.DiscreteSeekBar_dsb_lowerValue;
         final TypedValue out = new TypedValue();
         //Not sure why, but we wanted to be able to use dimensions here...
         if (a.getValue(indexMax, out)) {
@@ -228,10 +250,18 @@ public class DiscreteSeekBar extends View {
                 value = a.getInteger(indexValue, value);
             }
         }
+        if (a.getValue(indexLowerValue, out)) {
+            if (out.type == TypedValue.TYPE_DIMENSION) {
+                rangeLowerValue = a.getDimensionPixelSize(indexLowerValue, rangeLowerValue);
+            } else {
+                rangeLowerValue = a.getInteger(indexLowerValue, rangeLowerValue);
+            }
+        }
 
         mMin = min;
         mMax = Math.max(min + 1, max);
-        mValue = Math.max(min, Math.min(max, value));
+        mValue = 50;//Math.max(min, Math.min(max, value));
+        mLowerValue = 10;//Math.max(min, Math.min(max, value));
         updateKeyboardRange();
 
         mIndicatorFormatter = a.getString(R.styleable.DiscreteSeekBar_dsb_indicatorFormatter);
@@ -269,6 +299,11 @@ public class DiscreteSeekBar extends View {
         mThumb.setCallback(this);
         mThumb.setBounds(0, 0, mThumb.getIntrinsicWidth(), mThumb.getIntrinsicHeight());
 
+        if (mRange) {
+            mLowerThumb = new ThumbDrawable(progressColor, thumbSize);
+            mLowerThumb.setCallback(this);
+            mLowerThumb.setBounds(0, 0, mLowerThumb.getIntrinsicWidth(), mLowerThumb.getIntrinsicHeight());
+        }
 
         if (!editMode) {
             mIndicator = new PopupIndicator(context, attrs, defStyleAttr, convertValueToMessage(mMax),
@@ -339,6 +374,9 @@ public class DiscreteSeekBar extends View {
         if (mValue < mMin || mValue > mMax) {
             setProgress(mMin);
         }
+        if (mLowerValue < mMin || mLowerValue > mMax) {
+            setLowerValue(mMin);
+        }
         //We need to refresh the PopupIndicator view
         updateIndicatorSizes();
     }
@@ -369,6 +407,9 @@ public class DiscreteSeekBar extends View {
         if (mValue < mMin || mValue > mMax) {
             setProgress(mMin);
         }
+        if (mLowerValue < mMin || mLowerValue > mMax) {
+            setLowerValue(mMin);
+        }
     }
 
     public int getMin() {
@@ -397,7 +438,27 @@ public class DiscreteSeekBar extends View {
             mValue = value;
             notifyProgress(value, fromUser);
             updateProgressMessage(value);
-            updateThumbPosFromCurrentProgress();
+            updateThumbPosFromCurrentProgress(mThumb, mValue);
+        }
+    }
+
+    public void setLowerValue(int value) {
+        setLowerValue(value, false);
+    }
+
+    public void setLowerValue(int value, boolean fromUser) {
+        if (mRange) {
+            value = Math.max(mMin, Math.min(mMax, value));
+            if (isAnimationRunning()) {
+                mPositionAnimator.cancel();
+            }
+
+            if (mLowerValue != value) {
+                mLowerValue = value;
+                notifyProgress(value, fromUser);
+                updateProgressMessage(value);
+                updateThumbPosFromCurrentProgress(mLowerThumb, mLowerValue);
+            }
         }
     }
 
@@ -421,6 +482,10 @@ public class DiscreteSeekBar extends View {
         mPublicChangeListener = listener;
     }
 
+    public void setOnRangeChangeListener(@Nullable OnRangeChangeListener listener) {
+        mRangeChangeListener = listener;
+    }
+
     /**
      * Sets the color of the seek thumb, as well as the color of the popup indicator.
      *
@@ -431,6 +496,9 @@ public class DiscreteSeekBar extends View {
      */
     public void setThumbColor(int thumbColor, int indicatorColor) {
         mThumb.setColorStateList(ColorStateList.valueOf(thumbColor));
+        if (mRange) {
+            mLowerThumb.setColorStateList(ColorStateList.valueOf(thumbColor));
+        }
         mIndicator.setColors(indicatorColor, thumbColor);
     }
 
@@ -444,6 +512,9 @@ public class DiscreteSeekBar extends View {
      */
     public void setThumbColor(@NonNull ColorStateList thumbColorStateList, int indicatorColor) {
         mThumb.setColorStateList(thumbColorStateList);
+        if (mRange) {
+            mLowerThumb.setColorStateList(thumbColorStateList);
+        }
         //we use the "pressed" color to morph the indicator from it to its own color
         int thumbColor = thumbColorStateList.getColorForState(new int[]{PRESSED_STATE}, thumbColorStateList.getDefaultColor());
         mIndicator.setColors(indicatorColor, thumbColor);
@@ -618,6 +689,9 @@ public class DiscreteSeekBar extends View {
         int paddingRight = getPaddingRight();
         int bottom = getHeight() - getPaddingBottom() - addedThumb;
         mThumb.setBounds(paddingLeft, bottom - thumbHeight, paddingLeft + thumbWidth, bottom);
+        if (mRange) {
+            mLowerThumb.setBounds(paddingLeft, bottom - thumbHeight, paddingLeft + thumbWidth, bottom);
+        }
         int trackHeight = Math.max(mTrackHeight / 2, 1);
         mTrack.setBounds(paddingLeft + halfThumb, bottom - halfThumb - trackHeight,
                 getWidth() - halfThumb - paddingRight - addedThumb, bottom - halfThumb + trackHeight);
@@ -626,7 +700,10 @@ public class DiscreteSeekBar extends View {
                 paddingLeft + halfThumb, bottom - halfThumb + scrubberHeight);
 
         //Update the thumb position after size changed
-        updateThumbPosFromCurrentProgress();
+        updateThumbPosFromCurrentProgress(mThumb, mValue);
+        if (mRange) {
+            updateThumbPosFromCurrentProgress(mLowerThumb, mLowerValue);
+        }
     }
 
     @Override
@@ -638,6 +715,9 @@ public class DiscreteSeekBar extends View {
         mTrack.draw(canvas);
         mScrubber.draw(canvas);
         mThumb.draw(canvas);
+        if (mRange) {
+            mLowerThumb.draw(canvas);
+        }
     }
 
     @Override
@@ -666,6 +746,9 @@ public class DiscreteSeekBar extends View {
             hideFloater();
         }
         mThumb.setState(state);
+        if (mRange) {
+            mLowerThumb.setState(state);
+        }
         mTrack.setState(state);
         mScrubber.setState(state);
         mRipple.setState(state);
@@ -679,9 +762,9 @@ public class DiscreteSeekBar extends View {
 
     public String getValueAsString(int value) {
         if (mNumericTransformer.useStringTransform()) {
-            return mNumericTransformer.transformToString(mValue);
+            return mNumericTransformer.transformToString(value);
         } else {
-            return convertValueToMessage(mNumericTransformer.transform(mValue));
+            return convertValueToMessage(mNumericTransformer.transform(value));
         }
     }
 
@@ -903,26 +986,26 @@ public class DiscreteSeekBar extends View {
             updateProgressMessage(progress);
         }
         final int thumbPos = (int) (scale * available + 0.5f);
-        updateThumbPos(thumbPos);
+        updateThumbPos(mThumb, thumbPos);
     }
 
-    private void updateThumbPosFromCurrentProgress() {
-        int thumbWidth = mThumb.getIntrinsicWidth();
+    private void updateThumbPosFromCurrentProgress(ThumbDrawable thumb, int value) {
+        int thumbWidth = thumb.getIntrinsicWidth();
         int addedThumb = mAddedTouchBounds;
         int halfThumb = thumbWidth / 2;
-        float scaleDraw = (mValue - mMin) / (float) (mMax - mMin);
+        float scaleDraw = (value - mMin) / (float) (mMax - mMin);
 
         //This doesn't matter if RTL, as we just need the "avaiable" area
         int left = getPaddingLeft() + halfThumb + addedThumb;
         int right = getWidth() - (getPaddingRight() + halfThumb + addedThumb);
         int available = right - left;
 
-        final int thumbPos = (int) (scaleDraw * available + 0.5f);
-        updateThumbPos(thumbPos);
+        int thumbPos = (int) (scaleDraw * available + 0.5f);
+        updateThumbPos(thumb, thumbPos);
     }
 
-    private void updateThumbPos(int posX) {
-        int thumbWidth = mThumb.getIntrinsicWidth();
+    private void updateThumbPos(ThumbDrawable thumb, int posX) {
+        int thumbWidth = thumb.getIntrinsicWidth();
         int halfThumb = thumbWidth / 2;
         int start;
         if (isRtl()) {
@@ -932,8 +1015,8 @@ public class DiscreteSeekBar extends View {
             start = getPaddingLeft() + mAddedTouchBounds;
             posX = start + posX;
         }
-        mThumb.copyBounds(mInvalidateRect);
-        mThumb.setBounds(posX, mInvalidateRect.top, posX + thumbWidth, mInvalidateRect.bottom);
+        thumb.copyBounds(mInvalidateRect);
+        thumb.setBounds(posX, mInvalidateRect.top, posX + thumbWidth, mInvalidateRect.bottom);
         if (isRtl()) {
             mScrubber.getBounds().right = start - halfThumb;
             mScrubber.getBounds().left = posX + halfThumb;
@@ -942,7 +1025,7 @@ public class DiscreteSeekBar extends View {
             mScrubber.getBounds().right = posX + halfThumb;
         }
         final Rect finalBounds = mTempRect;
-        mThumb.copyBounds(finalBounds);
+        thumb.copyBounds(finalBounds);
         if (!isInEditMode()) {
             mIndicator.move(finalBounds.centerX());
         }
