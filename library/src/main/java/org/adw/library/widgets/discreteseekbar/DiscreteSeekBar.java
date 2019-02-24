@@ -135,7 +135,6 @@ public class DiscreteSeekBar extends View {
         }
     }
 
-
     private static final boolean isLollipopOrGreater = Build.VERSION.SDK_INT >= Build.VERSION_CODES.LOLLIPOP;
     //We want to always use a formatter so the indicator numbers are "translated" to specific locales.
     private static final String DEFAULT_FORMATTER = "%d";
@@ -1004,6 +1003,20 @@ public class DiscreteSeekBar extends View {
         updateThumbPos(thumb, thumbPos);
     }
 
+    private int getThumbPos(ThumbDrawable thumb, int value) {
+        int thumbWidth = thumb.getIntrinsicWidth();
+        int addedThumb = mAddedTouchBounds;
+        int halfThumb = thumbWidth / 2;
+        float scaleDraw = (value - mMin) / (float) (mMax - mMin);
+
+        //This doesn't matter if RTL, as we just need the "avaiable" area
+        int left = getPaddingLeft() + halfThumb + addedThumb;
+        int right = getWidth() - (getPaddingRight() + halfThumb + addedThumb);
+        int available = right - left;
+
+        return (int) (scaleDraw * available + 0.5f);
+    }
+
     private void updateThumbPos(ThumbDrawable thumb, int posX) {
         int thumbWidth = thumb.getIntrinsicWidth();
         int halfThumb = thumbWidth / 2;
@@ -1017,12 +1030,23 @@ public class DiscreteSeekBar extends View {
         }
         thumb.copyBounds(mInvalidateRect);
         thumb.setBounds(posX, mInvalidateRect.top, posX + thumbWidth, mInvalidateRect.bottom);
-        if (isRtl()) {
-            mScrubber.getBounds().right = start - halfThumb;
-            mScrubber.getBounds().left = posX + halfThumb;
+        if (mRange) {
+            if (isRtl()) {
+                // TODO
+                mScrubber.getBounds().right = start - halfThumb;
+                mScrubber.getBounds().left = posX + halfThumb;
+            } else {
+                mScrubber.getBounds().left = start + halfThumb + getThumbPos(mLowerThumb, mLowerValue);
+                mScrubber.getBounds().right = start + halfThumb + getThumbPos(mThumb, mValue);
+            }
         } else {
-            mScrubber.getBounds().left = start + halfThumb;
-            mScrubber.getBounds().right = posX + halfThumb;
+            if (isRtl()) {
+                mScrubber.getBounds().right = start - halfThumb;
+                mScrubber.getBounds().left = posX + halfThumb;
+            } else {
+                mScrubber.getBounds().left = start + halfThumb;
+                mScrubber.getBounds().right = posX + halfThumb;
+            }
         }
         final Rect finalBounds = mTempRect;
         thumb.copyBounds(finalBounds);
