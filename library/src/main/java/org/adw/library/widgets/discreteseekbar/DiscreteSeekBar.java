@@ -445,6 +445,14 @@ public class DiscreteSeekBar extends View {
         setValue(mThumbs[0], value, fromUser);
     }
 
+    public void setLowerValue(int value, boolean fromUser) {
+        setValue(mThumbs[0], value, fromUser);
+    }
+
+    public void setUpperValue(int value, boolean fromUser) {
+        setValue(mThumbs[1], value, fromUser);
+    }
+
     private void setValue(Thumb thumb, int value, boolean fromUser) {
         value = Math.max(mMin, Math.min(mMax, value));
         if (isAnimationRunning()) {
