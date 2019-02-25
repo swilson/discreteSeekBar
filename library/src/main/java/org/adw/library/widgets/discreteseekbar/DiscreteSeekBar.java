@@ -387,8 +387,10 @@ public class DiscreteSeekBar extends View {
         if (mThumbs[0].value < mMin || mThumbs[0].value > mMax) {
             setProgress(mMin);
         }
-        if (mThumbs[1].value < mThumbs[0].value || mThumbs[1].value > mMax) {
-            setValue(mThumbs[1], mThumbs[0].value, false);
+        if (mRange) {
+            if (mThumbs[1].value < mThumbs[0].value || mThumbs[1].value > mMax) {
+                setValue(mThumbs[1], mThumbs[0].value, false);
+            }
         }
         //We need to refresh the PopupIndicator view
         updateIndicatorSizes();
@@ -420,8 +422,10 @@ public class DiscreteSeekBar extends View {
         if (mThumbs[0].value < mMin || mThumbs[0].value > mMax) {
             setProgress(mMin);
         }
-        if (mThumbs[1].value < mThumbs[0].value || mThumbs[1].value > mMax) {
-            setValue(mThumbs[1], mThumbs[0].value, false);
+        if (mRange) {
+            if (mThumbs[1].value < mThumbs[0].value || mThumbs[1].value > mMax) {
+                setValue(mThumbs[1], mThumbs[0].value, false);
+            }
         }
     }
 
@@ -450,7 +454,9 @@ public class DiscreteSeekBar extends View {
     }
 
     public void setUpperValue(int value, boolean fromUser) {
-        setValue(mThumbs[1], value, fromUser);
+        if (mRange) {
+            setValue(mThumbs[1], value, fromUser);
+        }
     }
 
     private void setValue(Thumb thumb, int value, boolean fromUser) {
