@@ -74,10 +74,11 @@ public class DiscreteSeekBar extends View {
          * When the {@link DiscreteSeekBar} value changes
          *
          * @param seekBar  The DiscreteSeekBar
-         * @param value    the new value
+         * @param lower    the new lower value
+         * @param upper    the new upper value
          * @param fromUser if the change was made from the user or not (i.e. the developer calling {@link #setProgress(int)}
          */
-        public void onRangeChanged(DiscreteSeekBar seekBar, boolean lower, int value, boolean fromUser);
+        public void onRangeChanged(DiscreteSeekBar seekBar, int lower, int upper, boolean fromUser);
 
         public void onStartTrackingTouch(DiscreteSeekBar seekBar);
 
@@ -213,7 +214,7 @@ public class DiscreteSeekBar extends View {
         int max = 100;
         int min = 0;
         int value = 0;
-        int rangeUpperValue = 0;
+        int upperValue = 100;
         mMirrorForRtl = a.getBoolean(R.styleable.DiscreteSeekBar_dsb_mirrorForRtl, mMirrorForRtl);
         mRange = a.getBoolean(R.styleable.DiscreteSeekBar_dsb_range, mRange);
         mAllowTrackClick = a.getBoolean(R.styleable.DiscreteSeekBar_dsb_allowTrackClickToDrag, mAllowTrackClick);
@@ -231,7 +232,7 @@ public class DiscreteSeekBar extends View {
         int indexMax = R.styleable.DiscreteSeekBar_dsb_max;
         int indexMin = R.styleable.DiscreteSeekBar_dsb_min;
         int indexValue = R.styleable.DiscreteSeekBar_dsb_value;
-        int indexUpperValue = R.styleable.DiscreteSeekBar_dsb_lowerValue;
+        int indexUpperValue = R.styleable.DiscreteSeekBar_dsb_upperValue;
         final TypedValue out = new TypedValue();
         //Not sure why, but we wanted to be able to use dimensions here...
         if (a.getValue(indexMax, out)) {
@@ -257,19 +258,21 @@ public class DiscreteSeekBar extends View {
         }
         if (a.getValue(indexUpperValue, out)) {
             if (out.type == TypedValue.TYPE_DIMENSION) {
-                rangeUpperValue = a.getDimensionPixelSize(indexUpperValue, rangeUpperValue);
+                upperValue = a.getDimensionPixelSize(indexUpperValue, upperValue);
             } else {
-                rangeUpperValue = a.getInteger(indexUpperValue, rangeUpperValue);
+                upperValue = a.getInteger(indexUpperValue, upperValue);
             }
         }
 
         mThumbs[0] = new Thumb();
         mThumbs[1] = new Thumb();
 
+        mActiveThumb = mThumbs[0];
+
         mMin = min;
         mMax = Math.max(min + 1, max);
-        mThumbs[0].value = 10;//Math.max(min, Math.min(max, value));
-        mThumbs[1].value = 50;//Math.max(min, Math.min(max, value));
+        mThumbs[0].value = Math.max(min, Math.min(max, value));
+        mThumbs[1].value = Math.max(mThumbs[0].value, Math.min(max, upperValue));
         updateKeyboardRange();
 
         mIndicatorFormatter = a.getString(R.styleable.DiscreteSeekBar_dsb_indicatorFormatter);
@@ -449,8 +452,16 @@ public class DiscreteSeekBar extends View {
         }
 
         if (thumb.value != value) {
+            if (mRange) {
+                if (thumb == mThumbs[0] && value > mThumbs[1].value) {
+                    return;
+                }
+                if (thumb == mThumbs[1] && value < mThumbs[0].value) {
+                    return;
+                }
+            }
             thumb.value = value;
-            notifyProgress(value, fromUser);
+            notifyProgress(fromUser);
             updateProgressMessage(value);
             updateThumbPosFromCurrentProgress(thumb, thumb.value);
         }
@@ -587,11 +598,18 @@ public class DiscreteSeekBar extends View {
 
     }
 
-    private void notifyProgress(int value, boolean fromUser) {
-        if (mPublicChangeListener != null) {
-            mPublicChangeListener.onProgressChanged(DiscreteSeekBar.this, value, fromUser);
+    private void notifyProgress(boolean fromUser) {
+        if (mRange) {
+            if (mRangeChangeListener != null) {
+                mRangeChangeListener.onRangeChanged(DiscreteSeekBar.this, mThumbs[0].value, mThumbs[1].value, fromUser);
+            }
+        } else {
+            int value = mThumbs[0].value;
+            if (mPublicChangeListener != null) {
+                mPublicChangeListener.onProgressChanged(DiscreteSeekBar.this, value, fromUser);
+            }
+            onValueChanged(value);
         }
-        onValueChanged(value);
     }
 
     private void notifyBubble(boolean open) {
@@ -827,7 +845,16 @@ public class DiscreteSeekBar extends View {
 
     private boolean startDragging(MotionEvent ev, boolean ignoreTrackIfInScrollContainer) {
         final Rect bounds = mTempRect;
-        mActiveThumb = mThumbs[1];
+
+        if (mRange) {
+            // Figure out which thumb is closer
+            mThumbs[0].drawable.copyBounds(bounds);
+            int distance0 = Math.abs(bounds.centerX() - (int)ev.getX());
+            mThumbs[1].drawable.copyBounds(bounds);
+            int distance1 = Math.abs(bounds.centerX() - (int)ev.getX());
+            mActiveThumb = mThumbs[(distance0 < distance1) ? 0 : 1];
+        }
+
         mActiveThumb.drawable.copyBounds(bounds);
         //Grow the current thumb rect for a bigger touch area
         bounds.inset(-mAddedTouchBounds, -mAddedTouchBounds);
@@ -978,7 +1005,7 @@ public class DiscreteSeekBar extends View {
         //and this position is not bound to a real progress value but interpolated
         if (progress != getProgress()) {
             mActiveThumb.value = progress;
-            notifyProgress(mActiveThumb.value, true);
+            notifyProgress(true);
             updateProgressMessage(progress);
         }
         final int thumbPos = (int) (scale * available + 0.5f);
@@ -1101,10 +1128,7 @@ public class DiscreteSeekBar extends View {
     private MarkerDrawable.MarkerAnimationListener mFloaterListener = new MarkerDrawable.MarkerAnimationListener() {
         @Override
         public void onClosingComplete() {
-            if (mActiveThumb != null) {
-                mActiveThumb.drawable.animateToNormal();
-                mActiveThumb = null;
-            }
+            mActiveThumb.drawable.animateToNormal();
         }
 
         @Override

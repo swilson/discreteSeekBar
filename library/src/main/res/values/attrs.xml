@@ -39,6 +39,6 @@
         <attr name="dsb_thumbSize" format="integer|dimension"/>
         <attr name="dsb_indicatorSeparation" format="integer|dimension"/>
         <attr name="dsb_range" format="boolean"/>
-        <attr name="dsb_lowerValue" format="integer|dimension"/>
+        <attr name="dsb_upperValue" format="integer|dimension"/>
     </declare-styleable>
 </resources>
