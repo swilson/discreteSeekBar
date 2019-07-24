@@ -38,7 +38,7 @@ android {
     buildToolsVersion '28.0.3'
 
     defaultConfig {
-        minSdkVersion 4
+        minSdkVersion 14
         targetSdkVersion 22
         versionCode libVersionCode
         versionName libVersion
@@ -73,5 +73,5 @@ publish {
 }
 
 dependencies {
-    implementation 'androidx.legacy:legacy-support-v4:1.0.0-beta01'
+    implementation 'androidx.legacy:legacy-support-v4:1.0.0'
 }
