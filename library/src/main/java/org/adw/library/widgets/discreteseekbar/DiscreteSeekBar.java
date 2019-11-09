@@ -720,20 +720,39 @@ public class DiscreteSeekBar extends View {
         int thumbWidth = mThumbs[0].drawable.getIntrinsicWidth();
         int thumbHeight = mThumbs[0].drawable.getIntrinsicHeight();
         int addedThumb = mAddedTouchBounds;
-        int halfThumb = thumbWidth / 2;
-        int paddingLeft = getPaddingLeft() + addedThumb;
-        int paddingRight = getPaddingRight();
-        int bottom = getHeight() - getPaddingBottom() - addedThumb;
-        mThumbs[0].drawable.setBounds(paddingLeft, bottom - thumbHeight, paddingLeft + thumbWidth, bottom);
-        if (mRange) {
-            mThumbs[1].drawable.setBounds(paddingLeft, bottom - thumbHeight, paddingLeft + thumbWidth, bottom);
+
+        if (mVertical) {
+            int halfThumb = thumbHeight / 2;
+            int paddingTop = getPaddingTop() + addedThumb;
+            int paddingBottom = getPaddingBottom();
+            int right = getWidth() - getPaddingRight() - addedThumb;
+            mThumbs[0].drawable.setBounds(right - thumbHeight, paddingTop, right, paddingBottom + thumbWidth);
+            if (mRange) {
+                mThumbs[1].drawable.setBounds(right - thumbHeight, paddingTop, right, paddingBottom + thumbWidth);
+            }
+            int trackHeight = Math.max(mTrackHeight / 2, 1);
+            mTrack.setBounds(right - halfThumb - trackHeight, paddingTop + halfThumb,
+                    right - halfThumb + trackHeight, getHeight() - halfThumb - paddingBottom - addedThumb);
+            int scrubberHeight = Math.max(mScrubberHeight / 2, 2);
+            mScrubber.setBounds(right - halfThumb - scrubberHeight, paddingTop + halfThumb,
+                    right - halfThumb + scrubberHeight, paddingTop + halfThumb);
+
+        } else {
+            int halfThumb = thumbWidth / 2;
+            int paddingLeft = getPaddingLeft() + addedThumb;
+            int paddingRight = getPaddingRight();
+            int bottom = getHeight() - getPaddingBottom() - addedThumb;
+            mThumbs[0].drawable.setBounds(paddingLeft, bottom - thumbHeight, paddingLeft + thumbWidth, bottom);
+            if (mRange) {
+                mThumbs[1].drawable.setBounds(paddingLeft, bottom - thumbHeight, paddingLeft + thumbWidth, bottom);
+            }
+            int trackHeight = Math.max(mTrackHeight / 2, 1);
+            mTrack.setBounds(paddingLeft + halfThumb, bottom - halfThumb - trackHeight,
+                    getWidth() - halfThumb - paddingRight - addedThumb, bottom - halfThumb + trackHeight);
+            int scrubberHeight = Math.max(mScrubberHeight / 2, 2);
+            mScrubber.setBounds(paddingLeft + halfThumb, bottom - halfThumb - scrubberHeight,
+                    paddingLeft + halfThumb, bottom - halfThumb + scrubberHeight);
         }
-        int trackHeight = Math.max(mTrackHeight / 2, 1);
-        mTrack.setBounds(paddingLeft + halfThumb, bottom - halfThumb - trackHeight,
-                getWidth() - halfThumb - paddingRight - addedThumb, bottom - halfThumb + trackHeight);
-        int scrubberHeight = Math.max(mScrubberHeight / 2, 2);
-        mScrubber.setBounds(paddingLeft + halfThumb, bottom - halfThumb - scrubberHeight,
-                paddingLeft + halfThumb, bottom - halfThumb + scrubberHeight);
 
         //Update the thumb position after size changed
         updateThumbPosFromCurrentProgress(mThumbs[0], mThumbs[0].value);
@@ -836,7 +855,7 @@ public class DiscreteSeekBar extends View {
         int actionMasked = MotionEventCompat.getActionMasked(event);
         switch (actionMasked) {
             case MotionEvent.ACTION_DOWN:
-                mDownX = event.getX();
+                mDownX = mVertical ? event.getY() : event.getX();
                 startDragging(event, isInScrollingContainer());
                 break;
             case MotionEvent.ACTION_MOVE:
@@ -873,9 +892,19 @@ public class DiscreteSeekBar extends View {
         if (mRange) {
             // Figure out which thumb is closer
             mThumbs[0].drawable.copyBounds(bounds);
-            int distance0 = Math.abs(bounds.centerX() - (int)ev.getX());
+            int distance0;
+            if (mVertical) {
+                distance0 = Math.abs(bounds.centerY() - (int)ev.getY());
+            } else {
+                distance0 = Math.abs(bounds.centerX() - (int)ev.getX());
+            }
             mThumbs[1].drawable.copyBounds(bounds);
-            int distance1 = Math.abs(bounds.centerX() - (int)ev.getX());
+            int distance1;
+            if (mVertical) {
+                distance1 = Math.abs(bounds.centerY() - (int)ev.getY());
+            } else {
+                distance1 = Math.abs(bounds.centerX() - (int)ev.getX());
+            }
             mActiveThumb = mThumbs[(distance0 < distance1) ? 0 : 1];
         }
 
@@ -887,7 +916,11 @@ public class DiscreteSeekBar extends View {
             //If the user clicked outside the thumb, we compute the current position
             //and force an immediate drag to it.
             mIsDragging = true;
-            mDragOffset = (bounds.width() / 2) - mAddedTouchBounds;
+            if (mVertical) {
+                mDragOffset = (bounds.height() / 2) - mAddedTouchBounds;
+            } else {
+                mDragOffset = (bounds.width() / 2) - mAddedTouchBounds;
+            }
             updateDragging(ev);
             //As the thumb may have moved, get the bounds again
             mActiveThumb.drawable.copyBounds(bounds);
@@ -897,7 +930,11 @@ public class DiscreteSeekBar extends View {
             setPressed(true);
             attemptClaimDrag();
             setHotspot(ev.getX(), ev.getY());
-            mDragOffset = (int) (ev.getX() - bounds.left - mAddedTouchBounds);
+            if (mVertical) {
+                mDragOffset = (int) (ev.getY() - bounds.top - mAddedTouchBounds);
+            } else {
+                mDragOffset = (int) (ev.getX() - bounds.left - mAddedTouchBounds);
+            }
             if (mPublicChangeListener != null) {
                 mPublicChangeListener.onStartTrackingTouch(this);
             }
@@ -926,6 +963,7 @@ public class DiscreteSeekBar extends View {
         if (isEnabled()) {
             int progress = getAnimatedProgress();
             switch (keyCode) {
+                // TODO mOrientation
                 case KeyEvent.KEYCODE_DPAD_LEFT:
                     handled = true;
                     if (progress <= mMin) break;
@@ -994,23 +1032,46 @@ public class DiscreteSeekBar extends View {
 
     private void updateDragging(MotionEvent ev) {
         setHotspot(ev.getX(), ev.getY());
-        int x = (int) ev.getX();
-        Rect oldBounds = mActiveThumb.drawable.getBounds();
-        int halfThumb = oldBounds.width() / 2;
-        int addedThumb = mAddedTouchBounds;
-        int newX = x - mDragOffset + halfThumb;
-        int left = getPaddingLeft() + halfThumb + addedThumb;
-        int right = getWidth() - (getPaddingRight() + halfThumb + addedThumb);
-        if (newX < left) {
-            newX = left;
-        } else if (newX > right) {
-            newX = right;
-        }
 
-        int available = right - left;
-        float scale = (float) (newX - left) / (float) available;
-        if (isRtl()) {
-            scale = 1f - scale;
+        float scale;
+        if (mVertical) {
+            int y = (int) ev.getY();
+            Rect oldBounds = mActiveThumb.drawable.getBounds();
+            int halfThumb = oldBounds.height() / 2;
+            int addedThumb = mAddedTouchBounds;
+            int newY = y - mDragOffset + halfThumb;
+            int top = getPaddingTop() + halfThumb + addedThumb;
+            int bottom = getHeight() - (getPaddingBottom() + halfThumb + addedThumb);
+            if (newY < top) {
+                newY = top;
+            } else if (newY > bottom) {
+                newY = bottom;
+            }
+
+            int available = bottom - top;
+            scale = (float) (newY - top) / (float) available;
+            if (isRtl()) {
+                scale = 1f - scale;
+            }
+        } else {
+            int x = (int) ev.getX();
+            Rect oldBounds = mActiveThumb.drawable.getBounds();
+            int halfThumb = oldBounds.width() / 2;
+            int addedThumb = mAddedTouchBounds;
+            int newX = x - mDragOffset + halfThumb;
+            int left = getPaddingLeft() + halfThumb + addedThumb;
+            int right = getWidth() - (getPaddingRight() + halfThumb + addedThumb);
+            if (newX < left) {
+                newX = left;
+            } else if (newX > right) {
+                newX = right;
+            }
+
+            int available = right - left;
+            scale = (float) (newX - left) / (float) available;
+            if (isRtl()) {
+                scale = 1f - scale;
+            }
         }
         int progress = Math.round((scale * (mMax - mMin)) + mMin);
 
@@ -1019,11 +1080,21 @@ public class DiscreteSeekBar extends View {
 
     private void updateProgressFromAnimation(float scale) {
         Rect bounds = mActiveThumb.drawable.getBounds();
-        int halfThumb = bounds.width() / 2;
-        int addedThumb = mAddedTouchBounds;
-        int left = getPaddingLeft() + halfThumb + addedThumb;
-        int right = getWidth() - (getPaddingRight() + halfThumb + addedThumb);
-        int available = right - left;
+
+        int available;
+        if (mVertical) {
+            int halfThumb = bounds.height() / 2;
+            int addedThumb = mAddedTouchBounds;
+            int top = getPaddingTop() + halfThumb + addedThumb;
+            int bottom = getHeight() - (getPaddingBottom() + halfThumb + addedThumb);
+            available = bottom - top;
+        } else {
+            int halfThumb = bounds.width() / 2;
+            int addedThumb = mAddedTouchBounds;
+            int left = getPaddingLeft() + halfThumb + addedThumb;
+            int right = getWidth() - (getPaddingRight() + halfThumb + addedThumb);
+            available = right - left;
+        }
         int progress = Math.round((scale * (mMax - mMin)) + mMin);
         //we don't want to just call setProgress here to avoid the animation being cancelled,
         //and this position is not bound to a real progress value but interpolated
@@ -1037,69 +1108,117 @@ public class DiscreteSeekBar extends View {
     }
 
     private void updateThumbPosFromCurrentProgress(Thumb thumb, int value) {
-        int thumbWidth = thumb.drawable.getIntrinsicWidth();
-        int addedThumb = mAddedTouchBounds;
-        int halfThumb = thumbWidth / 2;
+        int available;
+        if (mVertical) {
+            int thumbHeight = thumb.drawable.getIntrinsicHeight();
+            int addedThumb = mAddedTouchBounds;
+            int halfThumb = thumbHeight / 2;
+
+            //This doesn't matter if RTL, as we just need the "avaiable" area
+            int top = getPaddingTop() + halfThumb + addedThumb;
+            int bottom = getHeight() - (getPaddingBottom() + halfThumb + addedThumb);
+            available = bottom - top;
+        } else {
+            int thumbWidth = thumb.drawable.getIntrinsicWidth();
+            int addedThumb = mAddedTouchBounds;
+            int halfThumb = thumbWidth / 2;
+
+            //This doesn't matter if RTL, as we just need the "avaiable" area
+            int left = getPaddingLeft() + halfThumb + addedThumb;
+            int right = getWidth() - (getPaddingRight() + halfThumb + addedThumb);
+            available = right - left;
+        }
+
         float scaleDraw = (value - mMin) / (float) (mMax - mMin);
-
-        //This doesn't matter if RTL, as we just need the "avaiable" area
-        int left = getPaddingLeft() + halfThumb + addedThumb;
-        int right = getWidth() - (getPaddingRight() + halfThumb + addedThumb);
-        int available = right - left;
-
         int thumbPos = (int) (scaleDraw * available + 0.5f);
         updateThumbPos(thumb, thumbPos);
     }
 
     private int getThumbPos(Thumb thumb) {
-        int thumbWidth = thumb.drawable.getIntrinsicWidth();
-        int addedThumb = mAddedTouchBounds;
-        int halfThumb = thumbWidth / 2;
+        int available;
+        if (mVertical) {
+            int thumbHeight = thumb.drawable.getIntrinsicHeight();
+            int addedThumb = mAddedTouchBounds;
+            int halfThumb = thumbHeight / 2;
+
+            //This doesn't matter if RTL, as we just need the "avaiable" area
+            int top = getPaddingTop() + halfThumb + addedThumb;
+            int bottom = getHeight() - (getPaddingBottom() + halfThumb + addedThumb);
+            available = bottom - top;
+        } else {
+            int thumbWidth = thumb.drawable.getIntrinsicWidth();
+            int addedThumb = mAddedTouchBounds;
+            int halfThumb = thumbWidth / 2;
+
+            //This doesn't matter if RTL, as we just need the "avaiable" area
+            int left = getPaddingLeft() + halfThumb + addedThumb;
+            int right = getWidth() - (getPaddingRight() + halfThumb + addedThumb);
+            available = right - left;
+        }
+
         float scaleDraw = (thumb.value - mMin) / (float) (mMax - mMin);
-
-        //This doesn't matter if RTL, as we just need the "avaiable" area
-        int left = getPaddingLeft() + halfThumb + addedThumb;
-        int right = getWidth() - (getPaddingRight() + halfThumb + addedThumb);
-        int available = right - left;
-
         return (int) (scaleDraw * available + 0.5f);
     }
 
-    private void updateThumbPos(Thumb thumb, int posX) {
-        int thumbWidth = thumb.drawable.getIntrinsicWidth();
-        int halfThumb = thumbWidth / 2;
-        int start;
-        if (isRtl()) {
-            start = getWidth() - getPaddingRight() - mAddedTouchBounds;
-            posX = start - posX - thumbWidth;
-        } else {
-            start = getPaddingLeft() + mAddedTouchBounds;
-            posX = start + posX;
-        }
-        thumb.drawable.copyBounds(mInvalidateRect);
-        thumb.drawable.setBounds(posX, mInvalidateRect.top, posX + thumbWidth, mInvalidateRect.bottom);
-        if (mRange) {
-            if (isRtl()) {
-                // TODO
-                mScrubber.getBounds().right = start - halfThumb;
-                mScrubber.getBounds().left = posX + halfThumb;
+    private void updateThumbPos(Thumb thumb, int pos) {
+        Rect finalBounds = mTempRect;
+        if (mVertical) {
+            int thumbHeight = thumb.drawable.getIntrinsicHeight();
+            int halfThumb = thumbHeight / 2;
+            int start;
+            start = getPaddingTop() + mAddedTouchBounds;
+            pos = start + pos;
+
+            thumb.drawable.copyBounds(mInvalidateRect);
+            thumb.drawable.setBounds(mInvalidateRect.left, pos, mInvalidateRect.right, pos + thumbHeight);
+            if (mRange) {
+                mScrubber.getBounds().top = start + halfThumb + getThumbPos(mThumbs[0]);
+                mScrubber.getBounds().bottom = start + halfThumb + getThumbPos(mThumbs[1]);
             } else {
-                mScrubber.getBounds().left = start + halfThumb + getThumbPos(mThumbs[0]);
-                mScrubber.getBounds().right = start + halfThumb + getThumbPos(mThumbs[1]);
+                mScrubber.getBounds().top = start + halfThumb;
+                mScrubber.getBounds().bottom = pos + halfThumb;
+            }
+            finalBounds = mTempRect;
+            thumb.drawable.copyBounds(finalBounds);
+            if (!isInEditMode()) {
+                mIndicator.move(finalBounds.centerY());
             }
         } else {
+            int thumbWidth = thumb.drawable.getIntrinsicWidth();
+            int halfThumb = thumbWidth / 2;
+            int start;
             if (isRtl()) {
-                mScrubber.getBounds().right = start - halfThumb;
-                mScrubber.getBounds().left = posX + halfThumb;
+                start = getWidth() - getPaddingRight() - mAddedTouchBounds;
+                pos = start - pos - thumbWidth;
             } else {
-                mScrubber.getBounds().left = start + halfThumb;
-                mScrubber.getBounds().right = posX + halfThumb;
+                start = getPaddingLeft() + mAddedTouchBounds;
+                pos = start + pos;
             }
-        }
-        final Rect finalBounds = mTempRect;
-        thumb.drawable.copyBounds(finalBounds);
-        if (!isInEditMode()) {
-            mIndicator.move(finalBounds.centerX());
+            thumb.drawable.copyBounds(mInvalidateRect);
+            thumb.drawable.setBounds(pos, mInvalidateRect.top, pos + thumbWidth, mInvalidateRect.bottom);
+            if (mRange) {
+                if (isRtl()) {
+                    // TODO
+                    mScrubber.getBounds().right = start - halfThumb;
+                    mScrubber.getBounds().left = pos + halfThumb;
+                } else {
+                    mScrubber.getBounds().left = start + halfThumb + getThumbPos(mThumbs[0]);
+                    mScrubber.getBounds().right = start + halfThumb + getThumbPos(mThumbs[1]);
+                }
+            } else {
+                if (isRtl()) {
+                    mScrubber.getBounds().right = start - halfThumb;
+                    mScrubber.getBounds().left = pos + halfThumb;
+                } else {
+                    mScrubber.getBounds().left = start + halfThumb;
+                    mScrubber.getBounds().right = pos + halfThumb;
+                }
+            }
+            finalBounds = mTempRect;
+            thumb.drawable.copyBounds(finalBounds);
+            if (!isInEditMode()) {
+                mIndicator.move(finalBounds.centerX());
+            }
         }
 
         mInvalidateRect.inset(-mAddedTouchBounds, -mAddedTouchBounds);
