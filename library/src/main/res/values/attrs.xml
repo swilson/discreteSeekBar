@@ -40,5 +40,6 @@
         <attr name="dsb_indicatorSeparation" format="integer|dimension"/>
         <attr name="dsb_range" format="boolean"/>
         <attr name="dsb_upperValue" format="integer|dimension"/>
+        <attr name="dsb_orientation" format="string|reference"/>
     </declare-styleable>
 </resources>

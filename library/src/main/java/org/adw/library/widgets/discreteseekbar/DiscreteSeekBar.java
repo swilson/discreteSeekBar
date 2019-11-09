@@ -192,6 +192,8 @@ public class DiscreteSeekBar extends View {
 
     private boolean mForceBubble;
 
+    private boolean mVertical;
+
     public DiscreteSeekBar(Context context) {
         this(context, null);
     }
@@ -224,6 +226,7 @@ public class DiscreteSeekBar extends View {
         int thumbSize = a.getDimensionPixelSize(R.styleable.DiscreteSeekBar_dsb_thumbSize, (int) (density * ThumbDrawable.DEFAULT_SIZE_DP));
         int separation = a.getDimensionPixelSize(R.styleable.DiscreteSeekBar_dsb_indicatorSeparation,
                 (int) (SEPARATION_DP * density));
+        mVertical = "vertical".equals(a.getString(R.styleable.DiscreteSeekBar_dsb_orientation));
 
         //Extra pixels for a minimum touch area of 32dp
         int touchBounds = (int) (density * 32);
@@ -681,10 +684,17 @@ public class DiscreteSeekBar extends View {
 
     @Override
     protected void onMeasure(int widthMeasureSpec, int heightMeasureSpec) {
-        int widthSize = MeasureSpec.getSize(widthMeasureSpec);
-        int height = mThumbs[0].drawable.getIntrinsicHeight() + getPaddingTop() + getPaddingBottom();
-        height += (mAddedTouchBounds * 2);
-        setMeasuredDimension(widthSize, height);
+        if (mVertical) {
+            int height = MeasureSpec.getSize(heightMeasureSpec);
+            int width = mThumbs[0].drawable.getIntrinsicWidth() + getPaddingLeft() + getPaddingRight();
+            width += (mAddedTouchBounds * 2);
+            setMeasuredDimension(width, height);
+        } else {
+            int widthSize = MeasureSpec.getSize(widthMeasureSpec);
+            int height = mThumbs[0].drawable.getIntrinsicHeight() + getPaddingTop() + getPaddingBottom();
+            height += (mAddedTouchBounds * 2);
+            setMeasuredDimension(widthSize, height);
+        }
     }
 
     @Override
