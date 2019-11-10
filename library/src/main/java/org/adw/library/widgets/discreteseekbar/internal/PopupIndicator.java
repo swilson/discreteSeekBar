@@ -58,10 +58,12 @@ public class PopupIndicator {
     private MarkerDrawable.MarkerAnimationListener mListener;
     private int[] mDrawingLocation = new int[2];
     Point screenSize = new Point();
+    private boolean mVertical;
 
-    public PopupIndicator(Context context, AttributeSet attrs, int defStyleAttr, String maxValue, int thumbSize, int separation) {
+    public PopupIndicator(Context context, AttributeSet attrs, int defStyleAttr, String maxValue, int thumbSize, int separation, boolean vertical) {
         mWindowManager = (WindowManager) context.getSystemService(Context.WINDOW_SERVICE);
         mPopupView = new Floater(context, attrs, defStyleAttr, maxValue, thumbSize, separation);
+        mVertical = vertical;
     }
 
     public void updateSizes(String maxValue) {
@@ -107,7 +109,7 @@ public class PopupIndicator {
             updateLayoutParamsForPosiion(parent, p, touchBounds.bottom);
             mShowing = true;
 
-            translateViewIntoPosition(touchBounds.centerX());
+            translateViewIntoPosition(mVertical ? touchBounds.centerY() : touchBounds.centerX());
             invokePopup(p);
         }
     }

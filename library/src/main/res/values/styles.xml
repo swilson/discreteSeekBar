@@ -29,6 +29,7 @@
         <item name="dsb_indicatorColor">@color/dsb_progress_color</item>
         <item name="dsb_indicatorElevation">4dp</item>
         <item name="dsb_mirrorForRtl">true</item>
+        <item name="dsb_mirror">false</item>
         <item name="dsb_range">false</item>
         <item name="dsb_orientation">horizontal</item>
     </style>

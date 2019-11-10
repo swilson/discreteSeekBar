@@ -167,6 +167,7 @@ public class DiscreteSeekBar extends View {
     private int mKeyProgressIncrement = 1;
     private boolean mRange = false;
     private boolean mMirrorForRtl = false;
+    private boolean mMirror = false;
     private boolean mAllowTrackClick = true;
     private boolean mIndicatorPopupEnabled = true;
     //We use our own Formatter to avoid creating new instances on every progress change
@@ -218,6 +219,7 @@ public class DiscreteSeekBar extends View {
         int value = 0;
         int upperValue = 100;
         mMirrorForRtl = a.getBoolean(R.styleable.DiscreteSeekBar_dsb_mirrorForRtl, mMirrorForRtl);
+        mMirror = a.getBoolean(R.styleable.DiscreteSeekBar_dsb_mirrorForRtl, mMirror);
         mRange = a.getBoolean(R.styleable.DiscreteSeekBar_dsb_range, mRange);
         mAllowTrackClick = a.getBoolean(R.styleable.DiscreteSeekBar_dsb_allowTrackClickToDrag, mAllowTrackClick);
         mIndicatorPopupEnabled = a.getBoolean(R.styleable.DiscreteSeekBar_dsb_indicatorPopupEnabled, mIndicatorPopupEnabled);
@@ -323,7 +325,7 @@ public class DiscreteSeekBar extends View {
 
         if (!editMode) {
             mIndicator = new PopupIndicator(context, attrs, defStyleAttr, convertValueToMessage(mMax),
-                    thumbSize, thumbSize + mAddedTouchBounds + separation);
+                    thumbSize, thumbSize + mAddedTouchBounds + separation, mVertical);
             mIndicator.setListener(mFloaterListener);
         }
         a.recycle();
@@ -862,7 +864,7 @@ public class DiscreteSeekBar extends View {
                 if (isDragging()) {
                     updateDragging(event);
                 } else {
-                    final float x = event.getX();
+                    final float x = mVertical ? event.getY() : event.getX();
                     if (Math.abs(x - mDownX) > mTouchSlop) {
                         startDragging(event, false);
                     }
@@ -963,7 +965,7 @@ public class DiscreteSeekBar extends View {
         if (isEnabled()) {
             int progress = getAnimatedProgress();
             switch (keyCode) {
-                // TODO mOrientation
+                // TODO mVertical
                 case KeyEvent.KEYCODE_DPAD_LEFT:
                     handled = true;
                     if (progress <= mMin) break;
@@ -1050,9 +1052,6 @@ public class DiscreteSeekBar extends View {
 
             int available = bottom - top;
             scale = (float) (newY - top) / (float) available;
-            if (isRtl()) {
-                scale = 1f - scale;
-            }
         } else {
             int x = (int) ev.getX();
             Rect oldBounds = mActiveThumb.drawable.getBounds();
@@ -1069,9 +1068,9 @@ public class DiscreteSeekBar extends View {
 
             int available = right - left;
             scale = (float) (newX - left) / (float) available;
-            if (isRtl()) {
-                scale = 1f - scale;
-            }
+        }
+        if (isRtl()) {
+            scale = 1f - scale;
         }
         int progress = Math.round((scale * (mMax - mMin)) + mMin);
 
@@ -1166,17 +1165,32 @@ public class DiscreteSeekBar extends View {
             int thumbHeight = thumb.drawable.getIntrinsicHeight();
             int halfThumb = thumbHeight / 2;
             int start;
-            start = getPaddingTop() + mAddedTouchBounds;
-            pos = start + pos;
-
+            if (isRtl()) {
+                start = getHeight() - getPaddingBottom() - mAddedTouchBounds;
+                pos = start - pos - thumbHeight;
+            } else {
+                start = getPaddingTop() + mAddedTouchBounds;
+                pos = start + pos;
+            }
             thumb.drawable.copyBounds(mInvalidateRect);
             thumb.drawable.setBounds(mInvalidateRect.left, pos, mInvalidateRect.right, pos + thumbHeight);
             if (mRange) {
-                mScrubber.getBounds().top = start + halfThumb + getThumbPos(mThumbs[0]);
-                mScrubber.getBounds().bottom = start + halfThumb + getThumbPos(mThumbs[1]);
+                if (isRtl()) {
+                    // TODO
+                    mScrubber.getBounds().bottom = start - halfThumb;
+                    mScrubber.getBounds().top = pos + halfThumb;
+                } else {
+                    mScrubber.getBounds().top = start + halfThumb + getThumbPos(mThumbs[0]);
+                    mScrubber.getBounds().bottom = start + halfThumb + getThumbPos(mThumbs[1]);
+                }
             } else {
-                mScrubber.getBounds().top = start + halfThumb;
-                mScrubber.getBounds().bottom = pos + halfThumb;
+                if (isRtl()) {
+                    mScrubber.getBounds().bottom = start - halfThumb;
+                    mScrubber.getBounds().top = pos + halfThumb;
+                } else {
+                    mScrubber.getBounds().top = start + halfThumb;
+                    mScrubber.getBounds().bottom = pos + halfThumb;
+                }
             }
             finalBounds = mTempRect;
             thumb.drawable.copyBounds(finalBounds);
@@ -1289,7 +1303,7 @@ public class DiscreteSeekBar extends View {
     }
 
     public boolean isRtl() {
-        return (ViewCompat.getLayoutDirection(this) == LAYOUT_DIRECTION_RTL) && mMirrorForRtl;
+        return mMirror || ((ViewCompat.getLayoutDirection(this) == LAYOUT_DIRECTION_RTL) && mMirrorForRtl);
     }
 
     @Override
