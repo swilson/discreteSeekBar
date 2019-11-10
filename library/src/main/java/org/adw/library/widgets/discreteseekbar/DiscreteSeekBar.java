@@ -219,7 +219,7 @@ public class DiscreteSeekBar extends View {
         int value = 0;
         int upperValue = 100;
         mMirrorForRtl = a.getBoolean(R.styleable.DiscreteSeekBar_dsb_mirrorForRtl, mMirrorForRtl);
-        mMirror = a.getBoolean(R.styleable.DiscreteSeekBar_dsb_mirrorForRtl, mMirror);
+        mMirror = a.getBoolean(R.styleable.DiscreteSeekBar_dsb_mirror, mMirror);
         mRange = a.getBoolean(R.styleable.DiscreteSeekBar_dsb_range, mRange);
         mAllowTrackClick = a.getBoolean(R.styleable.DiscreteSeekBar_dsb_allowTrackClickToDrag, mAllowTrackClick);
         mIndicatorPopupEnabled = a.getBoolean(R.styleable.DiscreteSeekBar_dsb_indicatorPopupEnabled, mIndicatorPopupEnabled);

@@ -62,7 +62,7 @@ public class PopupIndicator {
 
     public PopupIndicator(Context context, AttributeSet attrs, int defStyleAttr, String maxValue, int thumbSize, int separation, boolean vertical) {
         mWindowManager = (WindowManager) context.getSystemService(Context.WINDOW_SERVICE);
-        mPopupView = new Floater(context, attrs, defStyleAttr, maxValue, thumbSize, separation);
+        mPopupView = new Floater(context, attrs, defStyleAttr, maxValue, thumbSize, separation, vertical);
         mVertical = vertical;
     }
 
@@ -106,7 +106,7 @@ public class PopupIndicator {
             WindowManager.LayoutParams p = createPopupLayout(windowToken);
 
             p.gravity = Gravity.TOP | GravityCompat.START;
-            updateLayoutParamsForPosiion(parent, p, touchBounds.bottom);
+            updateLayoutParamsForPosiion(parent, p, mVertical ? touchBounds.right : touchBounds.bottom);
             mShowing = true;
 
             translateViewIntoPosition(mVertical ? touchBounds.centerY() : touchBounds.centerX());
@@ -151,13 +151,24 @@ public class PopupIndicator {
         screenSize.set(displayMetrics.widthPixels, displayMetrics.heightPixels);
 
         measureFloater();
-        int measuredHeight = mPopupView.getMeasuredHeight();
-        int paddingBottom = mPopupView.mMarker.getPaddingBottom();
-        anchor.getLocationInWindow(mDrawingLocation);
-        p.x = 0;
-        p.y = mDrawingLocation[1] - measuredHeight + yOffset + paddingBottom;
-        p.width = screenSize.x;
-        p.height = measuredHeight;
+
+        if (mVertical) {
+            int measuredWidth = mPopupView.getMeasuredWidth();
+            int paddingRight = mPopupView.mMarker.getPaddingRight();
+            anchor.getLocationInWindow(mDrawingLocation);
+            p.x = mDrawingLocation[1] - measuredWidth + yOffset + paddingRight;
+            p.y = 0;
+            p.width = measuredWidth;
+            p.height = screenSize.y;
+        } else {
+            int measuredHeight = mPopupView.getMeasuredHeight();
+            int paddingBottom = mPopupView.mMarker.getPaddingBottom();
+            anchor.getLocationInWindow(mDrawingLocation);
+            p.x = 0;
+            p.y = mDrawingLocation[1] - measuredHeight + yOffset + paddingBottom;
+            p.width = screenSize.x;
+            p.height = measuredHeight;
+        }
     }
 
     private void translateViewIntoPosition(final int x) {
@@ -214,33 +225,53 @@ public class PopupIndicator {
     private class Floater extends FrameLayout implements MarkerDrawable.MarkerAnimationListener {
         private Marker mMarker;
         private int mOffset;
+        private boolean mVertical;
 
-        public Floater(Context context, AttributeSet attrs, int defStyleAttr, String maxValue, int thumbSize, int separation) {
+        public Floater(Context context, AttributeSet attrs, int defStyleAttr, String maxValue, int thumbSize, int separation, boolean vertical) {
             super(context);
-            mMarker = new Marker(context, attrs, defStyleAttr, maxValue, thumbSize, separation);
+            mVertical = vertical;
+            mMarker = new Marker(context, attrs, defStyleAttr, maxValue, thumbSize, separation, vertical);
             addView(mMarker, new LayoutParams(ViewGroup.LayoutParams.WRAP_CONTENT, ViewGroup.LayoutParams.WRAP_CONTENT, Gravity.LEFT | Gravity.TOP));
         }
 
         @Override
         protected void onMeasure(int widthMeasureSpec, int heightMeasureSpec) {
             measureChildren(widthMeasureSpec, heightMeasureSpec);
-            int widthSize = MeasureSpec.getSize(widthMeasureSpec);
-            int heightSie = mMarker.getMeasuredHeight();
-            setMeasuredDimension(widthSize, heightSie);
+            if (mVertical) {
+                int widthSize = mMarker.getMeasuredWidth();
+                int heightSie = MeasureSpec.getSize(heightMeasureSpec);
+                setMeasuredDimension(widthSize, heightSie);
+            } else {
+                int widthSize = MeasureSpec.getSize(widthMeasureSpec);
+                int heightSie = mMarker.getMeasuredHeight();
+                setMeasuredDimension(widthSize, heightSie);
+            }
         }
 
         @Override
         protected void onLayout(boolean changed, int l, int t, int r, int b) {
-            int centerDiffX = mMarker.getMeasuredWidth() / 2;
-            int offset = (mOffset - centerDiffX);
-            mMarker.layout(offset, 0, offset + mMarker.getMeasuredWidth(), mMarker.getMeasuredHeight());
+            if (mVertical) {
+                int centerDiffY = mMarker.getMeasuredHeight() / 2;
+                int offset = (mOffset - centerDiffY);
+                mMarker.layout(0, offset, mMarker.getMeasuredWidth(), offset + mMarker.getMeasuredHeight());
+            } else {
+                int centerDiffX = mMarker.getMeasuredWidth() / 2;
+                int offset = (mOffset - centerDiffX);
+                mMarker.layout(offset, 0, offset + mMarker.getMeasuredWidth(), mMarker.getMeasuredHeight());
+            }
         }
 
         public void setFloatOffset(int x) {
             mOffset = x;
-            int centerDiffX = mMarker.getMeasuredWidth() / 2;
-            int offset = (x - centerDiffX);
-            mMarker.offsetLeftAndRight(offset - mMarker.getLeft());
+            if (mVertical) {
+                int centerDiffY = mMarker.getMeasuredHeight() / 2;
+                int offset = (x - centerDiffY);
+                mMarker.offsetLeftAndRight(offset - mMarker.getTop());
+            } else {
+                int centerDiffX = mMarker.getMeasuredWidth() / 2;
+                int offset = (x - centerDiffX);
+                mMarker.offsetLeftAndRight(offset - mMarker.getLeft());
+            }
             //Without hardware acceleration (or API levels<11), offsetting a view seems to NOT invalidate the proper area.
             //We should calc the proper invalidate Rect but this will be for now...
             if (!SeekBarCompat.isHardwareAccelerated(this)) {

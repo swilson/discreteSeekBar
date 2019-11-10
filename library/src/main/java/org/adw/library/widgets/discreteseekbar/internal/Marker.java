@@ -56,9 +56,13 @@ public class Marker extends ViewGroup implements MarkerDrawable.MarkerAnimationL
     //This will be added to our measured height
     private int mSeparation;
     MarkerDrawable mMarkerDrawable;
+    private boolean mVertical;
 
-    public Marker(Context context, AttributeSet attrs, int defStyleAttr, String maxValue, int thumbSize, int separation) {
+    public Marker(Context context, AttributeSet attrs, int defStyleAttr, String maxValue, int thumbSize, int separation, boolean vertical) {
         super(context, attrs, defStyleAttr);
+
+        mVertical = vertical;
+
         //as we're reading the parent DiscreteSeekBar attributes, it may wrongly set this view's visibility.
         setVisibility(View.VISIBLE);
         
@@ -71,7 +75,11 @@ public class Marker extends ViewGroup implements MarkerDrawable.MarkerAnimationL
                 R.style.Widget_DiscreteIndicatorTextAppearance);
         mNumber = new TextView(context);
         //Add some padding to this textView so the bubble has some space to breath
-        mNumber.setPadding(padding, 0, padding, 0);
+        if (mVertical) {
+            mNumber.setPadding(0, padding, 0, padding);
+        } else {
+            mNumber.setPadding(padding, 0, padding, 0);
+        }
         mNumber.setTextAppearance(context, textAppearanceId);
         mNumber.setGravity(Gravity.CENTER);
         mNumber.setText(maxValue);
