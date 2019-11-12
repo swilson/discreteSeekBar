@@ -156,7 +156,7 @@ public class PopupIndicator {
             int measuredWidth = mPopupView.getMeasuredWidth();
             int paddingRight = mPopupView.mMarker.getPaddingRight();
             anchor.getLocationInWindow(mDrawingLocation);
-            p.x = mDrawingLocation[1] - measuredWidth + yOffset + paddingRight;
+            p.x = mDrawingLocation[0] - measuredWidth + yOffset + paddingRight;
             p.y = 0;
             p.width = measuredWidth;
             p.height = screenSize.y;
@@ -172,7 +172,7 @@ public class PopupIndicator {
     }
 
     private void translateViewIntoPosition(final int x) {
-        mPopupView.setFloatOffset(x + mDrawingLocation[0]);
+        mPopupView.setFloatOffset(x + (mVertical ? mDrawingLocation[1] : mDrawingLocation[0]));
     }
 
     private void invokePopup(WindowManager.LayoutParams p) {
@@ -230,7 +230,7 @@ public class PopupIndicator {
         public Floater(Context context, AttributeSet attrs, int defStyleAttr, String maxValue, int thumbSize, int separation, boolean vertical) {
             super(context);
             mVertical = vertical;
-            mMarker = new Marker(context, attrs, defStyleAttr, maxValue, thumbSize, separation, vertical);
+            mMarker = new Marker(context, attrs, defStyleAttr, maxValue, thumbSize, separation);
             addView(mMarker, new LayoutParams(ViewGroup.LayoutParams.WRAP_CONTENT, ViewGroup.LayoutParams.WRAP_CONTENT, Gravity.LEFT | Gravity.TOP));
         }
 
@@ -266,7 +266,7 @@ public class PopupIndicator {
             if (mVertical) {
                 int centerDiffY = mMarker.getMeasuredHeight() / 2;
                 int offset = (x - centerDiffY);
-                mMarker.offsetLeftAndRight(offset - mMarker.getTop());
+                mMarker.offsetTopAndBottom(offset - mMarker.getTop());
             } else {
                 int centerDiffX = mMarker.getMeasuredWidth() / 2;
                 int offset = (x - centerDiffX);
