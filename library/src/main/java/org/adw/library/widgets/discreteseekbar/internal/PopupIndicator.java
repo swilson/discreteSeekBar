@@ -82,8 +82,15 @@ public class PopupIndicator {
      * We may/should change this in the future to use just the PARENT View width and/or pass it in the constructor
      */
     private void measureFloater() {
-        int specWidth = View.MeasureSpec.makeMeasureSpec(screenSize.x, View.MeasureSpec.EXACTLY);
-        int specHeight = View.MeasureSpec.makeMeasureSpec(screenSize.y, View.MeasureSpec.AT_MOST);
+        int specWidth;
+        int specHeight;
+        if (mVertical) {
+            specWidth = View.MeasureSpec.makeMeasureSpec(screenSize.x, View.MeasureSpec.AT_MOST);
+            specHeight = View.MeasureSpec.makeMeasureSpec(screenSize.y, View.MeasureSpec.EXACTLY);
+        } else {
+            specWidth = View.MeasureSpec.makeMeasureSpec(screenSize.x, View.MeasureSpec.EXACTLY);
+            specHeight = View.MeasureSpec.makeMeasureSpec(screenSize.y, View.MeasureSpec.AT_MOST);
+        }
         mPopupView.measure(specWidth, specHeight);
     }
 
@@ -156,7 +163,7 @@ public class PopupIndicator {
             int measuredWidth = mPopupView.getMeasuredWidth();
             int paddingRight = mPopupView.mMarker.getPaddingRight();
             anchor.getLocationInWindow(mDrawingLocation);
-            p.x = mDrawingLocation[0] - measuredWidth + yOffset + paddingRight;
+            p.x = mDrawingLocation[0] + ((anchor.getWidth() - measuredWidth) / 2);
             p.y = 0;
             p.width = measuredWidth;
             p.height = screenSize.y;
@@ -251,8 +258,7 @@ public class PopupIndicator {
         @Override
         protected void onLayout(boolean changed, int l, int t, int r, int b) {
             if (mVertical) {
-                int centerDiffY = mMarker.getMeasuredHeight() / 2;
-                int offset = (mOffset - centerDiffY);
+                int offset = (mOffset - mMarker.getMeasuredHeight());
                 mMarker.layout(0, offset, mMarker.getMeasuredWidth(), offset + mMarker.getMeasuredHeight());
             } else {
                 int centerDiffX = mMarker.getMeasuredWidth() / 2;
@@ -264,8 +270,7 @@ public class PopupIndicator {
         public void setFloatOffset(int x) {
             mOffset = x;
             if (mVertical) {
-                int centerDiffY = mMarker.getMeasuredHeight() / 2;
-                int offset = (x - centerDiffY);
+                int offset = (mOffset - mMarker.getMeasuredHeight());
                 mMarker.offsetTopAndBottom(offset - mMarker.getTop());
             } else {
                 int centerDiffX = mMarker.getMeasuredWidth() / 2;
