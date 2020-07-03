@@ -1306,6 +1306,10 @@ public class DiscreteSeekBar extends View {
         return mMirror || ((ViewCompat.getLayoutDirection(this) == LAYOUT_DIRECTION_RTL) && mMirrorForRtl);
     }
 
+    public void setAllowTrackClick(boolean allowTrackClick) {
+        mAllowTrackClick = allowTrackClick;
+    }
+
     @Override
     protected Parcelable onSaveInstanceState() {
         Parcelable superState = super.onSaveInstanceState();
