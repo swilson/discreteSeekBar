@@ -22,9 +22,8 @@ android {
         minSdkVersion 14
         targetSdkVersion 33
 
-        versionCode libVersionCode
-        versionName libVersion
     }
+    namespace 'org.adw.library.widgets.discreteseekbar'
 }
 
 dependencies {
