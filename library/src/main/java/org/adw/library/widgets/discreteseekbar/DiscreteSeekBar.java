@@ -16,6 +16,10 @@
 
 package org.adw.library.widgets.discreteseekbar;
 
+import static android.view.accessibility.AccessibilityEvent.TYPE_VIEW_SELECTED;
+import static androidx.core.view.accessibility.AccessibilityNodeInfoCompat.RangeInfoCompat.RANGE_TYPE_FLOAT;
+import static androidx.core.view.accessibility.AccessibilityNodeInfoCompat.RangeInfoCompat.RANGE_TYPE_INT;
+
 import android.content.Context;
 import android.content.res.ColorStateList;
 import android.content.res.TypedArray;
@@ -24,19 +28,23 @@ import android.graphics.Color;
 import android.graphics.Rect;
 import android.graphics.drawable.Drawable;
 import android.os.Build;
+import android.os.Bundle;
 import android.os.Parcel;
 import android.os.Parcelable;
 import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
 import androidx.core.graphics.drawable.DrawableCompat;
+import androidx.core.view.AccessibilityDelegateCompat;
 import androidx.core.view.MotionEventCompat;
 import androidx.core.view.ViewCompat;
 import android.util.AttributeSet;
+import android.util.Log;
 import android.util.TypedValue;
 import android.view.KeyEvent;
 import android.view.MotionEvent;
 import android.view.View;
 import android.view.ViewConfiguration;
+import android.view.ViewGroup;
 import android.view.ViewParent;
 
 import org.adw.library.widgets.discreteseekbar.internal.PopupIndicator;
@@ -47,7 +55,15 @@ import org.adw.library.widgets.discreteseekbar.internal.drawable.ThumbDrawable;
 import org.adw.library.widgets.discreteseekbar.internal.drawable.TrackRectDrawable;
 
 import java.util.Formatter;
+import java.util.List;
 import java.util.Locale;
+
+import android.view.accessibility.AccessibilityEvent;
+import android.view.accessibility.AccessibilityManager;
+import android.view.accessibility.AccessibilityNodeInfo;
+
+import androidx.core.view.accessibility.AccessibilityNodeInfoCompat;
+import androidx.core.view.accessibility.AccessibilityViewCommand;
 
 public class DiscreteSeekBar extends View {
 
@@ -332,6 +348,36 @@ public class DiscreteSeekBar extends View {
 
         setNumericTransformer(new DefaultNumericTransformer());
 
+        ViewCompat.setAccessibilityDelegate(this, new AccessibilityDelegateCompat() {
+            public void onInitializeAccessibilityNodeInfo(View host,
+                                                          AccessibilityNodeInfoCompat info) {
+                super.onInitializeAccessibilityNodeInfo(host, info);
+
+                info.setEnabled(host.isEnabled());
+                info.addAction(AccessibilityNodeInfoCompat.AccessibilityActionCompat.ACTION_SET_PROGRESS);
+
+                if (isEnabled()) {
+                    info.addAction(AccessibilityNodeInfoCompat.ACTION_SCROLL_BACKWARD);
+                    info.addAction(AccessibilityNodeInfoCompat.ACTION_SCROLL_FORWARD);
+                }
+                info.setRangeInfo(AccessibilityNodeInfoCompat.RangeInfoCompat.obtain(RANGE_TYPE_FLOAT, getMin(), getMax(), getProgress()));
+            }
+
+            @Override
+            public boolean performAccessibilityAction(View host, int action, Bundle args) {
+                int increment = (getMax() - getMin()) / 10;
+                int current = getProgress();
+                switch (action) {
+                    case AccessibilityNodeInfoCompat.ACTION_SCROLL_BACKWARD:
+                        setProgress(current - increment, true);
+                        return true;
+                    case AccessibilityNodeInfoCompat.ACTION_SCROLL_FORWARD:
+                        setProgress(current + increment, true);
+                        return true;
+                }
+                return super.performAccessibilityAction(host, action, args);
+            }
+        });
     }
 
     /**
@@ -483,6 +529,10 @@ public class DiscreteSeekBar extends View {
             notifyProgress(fromUser);
             updateProgressMessage(value);
             updateThumbPosFromCurrentProgress(thumb, thumb.value);
+        }
+
+        if (fromUser) {
+            sendAccessibilityEvent(TYPE_VIEW_SELECTED);
         }
     }
 

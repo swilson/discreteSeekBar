@@ -29,4 +29,5 @@ android {
 dependencies {
     implementation "androidx.annotation:annotation:1.2.0"
     implementation "androidx.core:core:1.5.0"
+    implementation "androidx.customview:customview:1.1.0"
 }
