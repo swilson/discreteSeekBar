@@ -16,20 +16,20 @@ def libVersionCode = 2
 def libVersion = '1.0.1'
 
 android {
-    compileSdkVersion 34
+    compileSdkVersion 35
 
     defaultConfig {
         minSdkVersion 21
-        targetSdkVersion 34
+        targetSdkVersion 35
 
     }
     namespace 'org.adw.library.widgets.discreteseekbar'
 }
 
 dependencies {
-    implementation "androidx.annotation:annotation:1.2.0"
-    implementation "androidx.core:core:1.5.0"
-    implementation "androidx.customview:customview:1.1.0"
+    implementation "androidx.annotation:annotation:1.9.1"
+    implementation "androidx.core:core:1.16.0"
+    implementation "androidx.customview:customview:1.2.0"
 }
 
 java {
