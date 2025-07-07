@@ -1353,7 +1353,7 @@ public class DiscreteSeekBar extends View {
     }
 
     public boolean isRtl() {
-        return mMirror || ((ViewCompat.getLayoutDirection(this) == LAYOUT_DIRECTION_RTL) && mMirrorForRtl);
+        return mMirror || ((ViewCompat.getLayoutDirection(this) == ViewCompat.LAYOUT_DIRECTION_RTL) && mMirrorForRtl);
     }
 
     public void setAllowTrackClick(boolean allowTrackClick) {

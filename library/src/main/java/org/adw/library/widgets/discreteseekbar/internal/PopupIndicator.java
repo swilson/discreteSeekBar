@@ -112,7 +112,7 @@ public class PopupIndicator {
         if (windowToken != null) {
             WindowManager.LayoutParams p = createPopupLayout(windowToken);
 
-            p.gravity = Gravity.TOP | GravityCompat.START;
+            p.gravity = Gravity.TOP | Gravity.START;
             updateLayoutParamsForPosiion(parent, p, mVertical ? touchBounds.right : touchBounds.bottom);
             mShowing = true;
 
