@@ -1,9 +1,5 @@
-apply plugin: 'com.android.library'
-
-buildscript {
-    repositories {
-        jcenter()
-    }
+plugins {
+   alias libs.plugins.android.library
 }
 
 /**
