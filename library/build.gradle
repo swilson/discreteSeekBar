@@ -9,11 +9,11 @@ def libVersionCode = 2
 def libVersion = '1.0.1'
 
 android {
-    compileSdkVersion 35
+    compileSdkVersion 36
 
     defaultConfig {
         minSdkVersion 21
-        targetSdkVersion 35
+        targetSdkVersion 36
 
     }
     namespace 'org.adw.library.widgets.discreteseekbar'
