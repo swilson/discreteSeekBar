@@ -13,10 +13,15 @@ android {
 
     defaultConfig {
         minSdkVersion 21
-        targetSdkVersion 36
 
     }
     namespace 'org.adw.library.widgets.discreteseekbar'
+    lint {
+        targetSdk 36
+    }
+    testOptions {
+        targetSdk 36
+    }
 }
 
 dependencies {
